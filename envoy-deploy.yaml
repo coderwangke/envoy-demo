@@ -1,0 +1,115 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: front-envoy
+  namespace: grpc
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: front-envoy
+    spec:
+      containers:
+      - image: ccr.ccs.tencentyun.com/hale/envoy-alpine:v1.9.1
+        imagePullPolicy: Always
+        name: envoy
+        ports:
+        - containerPort: 80
+          name: test
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /etc/envoy
+          name: envoy-config
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: envoy-config
+        name: envoy-config
+
+---
+
+apiVersion: v1
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+      - address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 80
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            config:
+              access_log:
+              - name: envoy.file_access_log
+                config:
+                  path: "/dev/stdout"
+              codec_type: AUTO
+              stat_prefix: ingress_http
+              route_config:
+                name: local_route
+                virtual_hosts:
+                - name: http
+                  domains:
+                  - "*"
+                  routes:
+                  - match:
+                      prefix: "/helloworld.Greeter/"
+                    route:
+                      cluster: grpc-server
+              http_filters:
+              - name: envoy.router
+                config: {}
+      clusters:
+      - name: grpc-server
+        connect_timeout: 0.5s
+        type: STRICT_DNS
+        dns_lookup_family: V4_ONLY
+        lb_policy: ROUND_ROBIN
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: grpc-server
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: grpc-server-hl.grpc.svc.cluster.local
+                    port_value: 5005
+    admin:
+      access_log_path: "/dev/stdout"
+      address:
+        socket_address:
+          address: 127.0.0.1
+          port_value: 8090
+kind: ConfigMap
+metadata:
+  name: envoy-config
+  namespace: grpc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy
+spec:
+  type: LoadBalancer
+  selector:
+    app: envoy
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
