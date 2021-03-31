@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: grpc-server
+  namespace: grpc
+  labels:
+    app: grpc-server
+spec:
+  selector:
+    matchLabels:
+      app: grpc-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grpc-server
+    spec:
+      containers:
+      - name: curl
+        image: ccr.ccs.tencentyun.com/hale/grpc_demo_server:latest
+        imagePullPolicy: Always
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: grpc-server-hl
+  namespace: grpc
+  labels: 
+    app: grpc-server
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-5005-5005
+    port: 5005
+    protocol: TCP
+    targetPort: 5005
+  selector:
+    app: grpc-server
+  sessionAffinity: None
+  type: ClusterIP
