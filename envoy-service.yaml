@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy
+  namespace: grpc
+spec:
+  type: LoadBalancer
+  selector:
+    app: front-envoy
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80

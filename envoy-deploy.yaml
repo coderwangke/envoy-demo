@@ -1,9 +1,12 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: front-envoy
   namespace: grpc
 spec:
+  selector:
+    matchLabels:
+      app: front-envoy
   replicas: 1
   template:
     metadata:
@@ -98,18 +101,3 @@ kind: ConfigMap
 metadata:
   name: envoy-config
   namespace: grpc
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: envoy
-spec:
-  type: LoadBalancer
-  selector:
-    app: front-envoy
-  ports:
-  - name: http
-    protocol: TCP
-    port: 80
-    targetPort: 80

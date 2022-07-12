@@ -14,7 +14,7 @@ Envoy proxy 主要工作：
 
 # 部署步骤
 
-## 创建Grpc服务
+## 创建Grpc Server 
 
 ```
 $ kubectl apply -f helloworld-grpc-server.yaml
@@ -23,18 +23,27 @@ $ kubectl apply -f helloworld-grpc-server.yaml
 ## 创建envoy服务
 
 ```
+# envoy deployment
 $ kubectl apply -f envoy-deploy.yaml
+
+# envoy service, 不支持 tls 认证
+$ kubectl apply -f envoy-service.yaml
+
+# envoy service with tls, 支持在 clb 上做 tls 认证
+$ kubectl apply -f envoy-service-with-tls.yaml
 ```
 
 补充说明：
 
 1 envoy的静态配置有两个模块：static_resources 和 admin （用于配置管理服务器）
 
-2 static_resources 模块包含了listener（用于配置客户端如何连接）和cluster （用于实现负载均衡）的定义
+2 `static_resources` 模块包含了listener（用于配置客户端如何连接）和cluster （用于实现负载均衡）的定义
 
 3 filter用于配置envoy如何管理流量，这里使用的是envoy内置的http_connection_manager filter
 
 4 envoy支持给cluster配置health check，用于检查endpoint对象是否是健康的，支持HTTP, gRPC, and Redis 协议
+
+5 `envoy service with tls` 支持在 clb 上做 tls 认证，详细配置参考：[TKE Service 扩展协议](https://cloud.tencent.com/document/product/457/51259#tke-.E6.89.A9.E5.B1.95-service-.E8.BD.AC.E5.8F.91.E5.8D.8F.E8.AE.AE)
 
 ## 测试
 
